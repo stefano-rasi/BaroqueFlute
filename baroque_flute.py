@@ -308,10 +308,7 @@ class BaroqueFlute:
 
 import os
 
-if '__file__' in globals():
-    KEY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'key.dxf')
-else:
-    KEY_FILE = os.path.join('models', 'key.dxf')  # eseguito dal viewer CAD
+KEY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'key.dxf')
 
 flute = BaroqueFlute(
     19, 8, 7,
