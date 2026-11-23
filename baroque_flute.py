@@ -2,12 +2,6 @@ from pathlib import Path
 
 import cadquery as cq
 
-def ring(outer_radius, inner_radius, height):
-    return cq.Workplane('XY').circle(outer_radius).circle(inner_radius).extrude(height)
-
-def radial_hole(radius, length, z):
-    return cq.Workplane('YZ').circle(radius).extrude(length).translate((0, 0, z))
-
 class BaroqueFlute:
     BORE_DIAMETER = 19
     FOOT_BORE_DIAMETER = 14
@@ -93,6 +87,12 @@ class BaroqueFlute:
     def z(self, position_from_blow_hole):
         return self.LENGTH_ABOVE_BLOW_HOLE + position_from_blow_hole
 
+    def ring(self, outer_radius, inner_radius, height):
+        return cq.Workplane('XY').circle(outer_radius).circle(inner_radius).extrude(height)
+
+    def radial_hole(self, radius, z):
+        return cq.Workplane('YZ').circle(radius).extrude(self.outer_radius).translate((0, 0, z))
+
     def build_tube(self):
         z_axis = cq.Vector(0, 0, 1)
 
@@ -105,7 +105,7 @@ class BaroqueFlute:
 
         tube = cq.Workplane('XY').circle(self.outer_radius).extrude(self.length).cut(bore)
 
-        tube = tube.cut(radial_hole(self.BLOW_HOLE_DIAMETER/2, self.outer_radius, self.z(0)))
+        tube = tube.cut(self.radial_hole(self.BLOW_HOLE_DIAMETER/2, self.z(0)))
 
         cork_top = self.z(0) - self.CORK_DISTANCE
 
@@ -117,12 +117,12 @@ class BaroqueFlute:
         )
 
         for position in self.o_ring_groove_positions:
-            groove = ring(self.outer_radius, self.o_ring_groove_radius, self.O_RING_GROOVE_WIDTH)
+            groove = self.ring(self.outer_radius, self.o_ring_groove_radius, self.O_RING_GROOVE_WIDTH)
 
             tube = tube.cut(groove.translate((0, 0, position - self.O_RING_GROOVE_WIDTH/2)))
 
         for position in self.TONE_HOLE_POSITIONS:
-            tube = tube.cut(radial_hole(self.tone_hole_radius, self.outer_radius, self.z(position)))
+            tube = tube.cut(self.radial_hole(self.tone_hole_radius, self.z(position)))
 
         return tube
 
@@ -138,9 +138,9 @@ class BaroqueFlute:
         return piece
 
     def socket(self, z, bonded_below):
-        sleeve = ring(self.socket_outer_radius, self.socket_radius, self.JOINT_LENGTH)
+        sleeve = self.ring(self.socket_outer_radius, self.socket_radius, self.JOINT_LENGTH)
 
-        bond = ring(self.socket_radius, self.outer_radius, self.JOINT_LENGTH/2).translate((0, 0, 0 if bonded_below else self.JOINT_LENGTH/2))
+        bond = self.ring(self.socket_radius, self.outer_radius, self.JOINT_LENGTH/2).translate((0, 0, 0 if bonded_below else self.JOINT_LENGTH/2))
 
         return sleeve.union(bond).translate((0, 0, z - self.JOINT_LENGTH/2))
 
