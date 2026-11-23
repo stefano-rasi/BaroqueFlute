@@ -1,4 +1,5 @@
 from pathlib import Path
+from functools import cached_property
 
 import cadquery as cq
 
@@ -101,8 +102,6 @@ class BaroqueFlute:
             self.KEY_ANGLE_DEGREES
         )
 
-        self.tube = self.build_tube()
-
     def z(self, position_from_blow_hole):
         return self.LENGTH_ABOVE_BLOW_HOLE + position_from_blow_hole
 
@@ -112,7 +111,8 @@ class BaroqueFlute:
     def radial_hole(self, radius, z):
         return cq.Workplane('YZ').circle(radius).extrude(self.outer_radius).translate((0, 0, z))
 
-    def build_tube(self):
+    @cached_property
+    def tube(self):
         head_bore = cq.Workplane('XY').circle(self.inner_radius).extrude(self.head_joint_z)
 
         body_bore = (
