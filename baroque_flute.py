@@ -26,7 +26,7 @@ class BaroqueFlute:
     O_RING_GROOVE_WIDTH = 2
     O_RING_SQUEEZE = 0.2
 
-    KEY_ANGLE_DEG = 6
+    KEY_ANGLE_DEGREES = 6
     KEY_LENGTH = 40
     KEY_PIVOT_DIAMETER = 1
     KEY_PIVOT_OFFSET = 4
@@ -43,7 +43,7 @@ class BaroqueFlute:
     PAD_SEAT_HEIGHT = 1
     PAD_SEAT_WALL = 1
 
-    SPRING_ANGLE_DEG = 45
+    SPRING_ANGLE_DEGREES = 45
     SPRING_BASE_THICKNESS = 1.5
     SPRING_DISTANCE_FROM_PIVOT = 10
     SPRING_LENGTH = 8
@@ -186,7 +186,7 @@ class BaroqueFlute:
 
     def to_key_pivot(self, shape):
         return (
-            shape.rotate((0, 0, 0), (0, -1, 0), self.KEY_ANGLE_DEG)
+            shape.rotate((0, 0, 0), (0, -1, 0), self.KEY_ANGLE_DEGREES)
             .translate((self.key_pivot_radius, 0, self.foot_joint_z))
         )
 
@@ -202,7 +202,7 @@ class BaroqueFlute:
             .close()
             .extrude(self.KEY_WIDTH)
             .translate((0, self.KEY_WIDTH/2, 0))
-            .rotate((0, 0, 0), (0, -1, 0), self.SPRING_ANGLE_DEG)
+            .rotate((0, 0, 0), (0, -1, 0), self.SPRING_ANGLE_DEGREES)
             .translate((0, 0, -self.SPRING_DISTANCE_FROM_PIVOT))
         )
 
