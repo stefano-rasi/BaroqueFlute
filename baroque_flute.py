@@ -11,7 +11,7 @@ class BaroqueFlute:
 
     class Embouchure:
         blow_hole_diameter = 8
-        cork_gap_to_blow_hole_edge = 4
+        cork_distance = 19
         cork_thickness = 2
 
     class ToneHoles:
@@ -132,7 +132,7 @@ class BaroqueFlute:
             .translate((0, 0, self.z(0)))
         )
 
-        cork_top = self.z(0) - blow_hole_radius - self.Embouchure.cork_gap_to_blow_hole_edge
+        cork_top = self.z(0) - self.Embouchure.cork_distance
 
         cork = (
             cq.Workplane('XY')
