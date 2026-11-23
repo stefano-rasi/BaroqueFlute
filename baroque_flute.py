@@ -1,5 +1,6 @@
 from pathlib import Path
 from functools import cached_property
+from math import radians, tan
 
 import cadquery as cq
 
@@ -16,7 +17,11 @@ class BaroqueFlute:
     CORK_DISTANCE = 19
     CORK_THICKNESS = 2
 
-    BLOW_HOLE_DIAMETER = 8
+    BLOW_HOLE_WIDTH = 8.5
+    BLOW_HOLE_LENGTH = 9.5
+    EMBOUCHURE_BAND_LENGTH = 30
+    EMBOUCHURE_WALL_THICKNESS = 5
+    EMBOUCHURE_UNDERCUT_DEGREES = 7
 
     TONE_HOLE_DIAMETER = 7
     TONE_HOLE_POSITIONS = (220, 260, 300, 340, 380, 420, 470)
@@ -68,6 +73,7 @@ class BaroqueFlute:
 
         self.inner_radius = self.BORE_DIAMETER/2
         self.outer_radius = self.inner_radius + self.WALL_THICKNESS
+        self.embouchure_outer_radius = self.inner_radius + self.EMBOUCHURE_WALL_THICKNESS
 
         self.tone_hole_radius = self.TONE_HOLE_DIAMETER/2
 
@@ -111,6 +117,16 @@ class BaroqueFlute:
     def radial_hole(self, radius, z):
         return cq.Workplane('YZ').circle(radius).extrude(self.outer_radius).translate((0, 0, z))
 
+    def blow_hole(self):
+        undercut_growth = 2 * self.embouchure_outer_radius * tan(radians(self.EMBOUCHURE_UNDERCUT_DEGREES))
+
+        return (
+            cq.Workplane('YZ')
+            .ellipse((self.BLOW_HOLE_WIDTH + undercut_growth)/2, (self.BLOW_HOLE_LENGTH + undercut_growth)/2)
+            .extrude(self.embouchure_outer_radius, taper=self.EMBOUCHURE_UNDERCUT_DEGREES)
+            .translate((0, 0, self.z(0)))
+        )
+
     @cached_property
     def tube(self):
         head_bore = cq.Workplane('XY').circle(self.inner_radius).extrude(self.head_joint_z)
@@ -133,7 +149,11 @@ class BaroqueFlute:
 
         tube = cq.Workplane('XY').circle(self.outer_radius).extrude(self.length).cut(bore)
 
-        tube = tube.cut(self.radial_hole(self.BLOW_HOLE_DIAMETER/2, self.z(0)))
+        embouchure_band = self.ring(self.embouchure_outer_radius, self.inner_radius, self.EMBOUCHURE_BAND_LENGTH)
+
+        tube = tube.union(embouchure_band.translate((0, 0, self.z(0) - self.EMBOUCHURE_BAND_LENGTH/2)))
+
+        tube = tube.cut(self.blow_hole())
 
         cork_top = self.z(0) - self.CORK_DISTANCE
 
