@@ -92,8 +92,6 @@ class BaroqueFlute:
 
         self.flute = flute
 
-    # Radii, from the bore outwards
-
     @property
     def inner_radius(self):
         return self.bore_diameter/2
@@ -114,15 +112,12 @@ class BaroqueFlute:
     def key_pivot_radius(self):
         return self.joint_outer_radius + self.KEY_HOLE_POSITION
 
-    # Cut positions along Z, from the head to the foot
-
     @property
     def first_cut(self):
         return self.HEAD_PIECE_LENGTH
 
     @property
     def second_cut(self):
-        # Halfway between the third and the fourth tone hole
         return self.BLOW_HOLE_POSITION + (self.TONE_HOLE_POSITIONS[2] + self.TONE_HOLE_POSITIONS[3]) / 2
 
     @property
@@ -184,7 +179,6 @@ class BaroqueFlute:
     def tail_piece(self):
         piece = self._section(self.tail_cut)
 
-        # Raised seat around the last tone hole, closed by the key
         piece = piece.union(
             cq.Workplane('YZ')
             .circle(self.tone_hole_diameter/2)
@@ -232,7 +226,6 @@ class BaroqueFlute:
         return piece.union(self._joint_at(self.tail_cut, self.joint().union(hinge)))
 
     def _to_key_pivot(self, shape):
-        """Moves a shape modelled around the origin onto the key pivot, tilted by KEY_ANGLE."""
         return (
             shape.rotate((0, 1, 0), (0, 0, 0), self.KEY_ANGLE)
             .translate((self.key_pivot_radius, 0, self.tail_cut))
