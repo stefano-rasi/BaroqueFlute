@@ -218,6 +218,7 @@ class BaroqueFlute:
         )
 
         joint_length = self.Joints.length
+
         hinge_box_center = (self.hinge_outer_radius / 2, 0, joint_length/2)
 
         hinge = (
