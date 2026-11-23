@@ -3,23 +3,30 @@ from pathlib import Path
 import cadquery as cq
 
 class BaroqueFlute:
-    BORE_DIAMETER = 19
     WALL_THICKNESS = 3
+
+    BORE_DIAMETER = 19
+
     FOOT_BORE_DIAMETER = 14
+
     LENGTH_ABOVE_BLOW_HOLE = 70
     LENGTH_BELOW_BLOW_HOLE = 520
 
     CORK_DISTANCE = 19
     CORK_THICKNESS = 2
+
     BLOW_HOLE_DIAMETER = 8
 
     TONE_HOLE_DIAMETER = 7
     TONE_HOLE_POSITIONS = (220, 260, 300, 340, 380, 420, 470)
+
     BODY_SPLIT_AFTER_HOLE = 3
 
     JOINT_LENGTH = 20
     JOINT_THICKNESS = 1.5
+
     FOOT_JOINT_MARGIN = 5
+
     HEAD_JOINT_FROM_BLOW_HOLE = 130
 
     O_RING_SQUEEZE = 0.2
@@ -30,9 +37,9 @@ class BaroqueFlute:
     KEY_LENGTH = 40
     KEY_THICKNESS = 4
     KEY_PIVOT_OFFSET = 4
+    KEY_PROFILE_FILE = Path(__file__).with_name('key.dxf')
     KEY_ANGLE_DEGREES = 6
     KEY_PIVOT_DIAMETER = 1
-    KEY_PROFILE_FILE = Path(__file__).with_name('key.dxf')
 
     HINGE_WIDTH = 15
     HINGE_RADIAL_EXTENT = 7.5
@@ -100,14 +107,23 @@ class BaroqueFlute:
         return cq.Workplane('YZ').circle(radius).extrude(self.outer_radius).translate((0, 0, z))
 
     def build_tube(self):
-        z_axis = cq.Vector(0, 0, 1)
+        head_bore = cq.Workplane('XY').circle(self.inner_radius).extrude(self.head_joint_z)
 
-        bore = (
-            cq.Workplane('XY')
-            .add(cq.Solid.makeCylinder(self.inner_radius, self.head_joint_z, cq.Vector(0, 0, 0), z_axis))
-            .union(cq.Solid.makeCone(self.inner_radius, self.foot_inner_radius, self.foot_joint_z - self.head_joint_z, cq.Vector(0, 0, self.head_joint_z), z_axis))
-            .union(cq.Solid.makeCylinder(self.foot_inner_radius, self.length - self.foot_joint_z, cq.Vector(0, 0, self.foot_joint_z), z_axis))
+        body_bore = (
+            cq.Workplane('XY', origin=(0, 0, self.head_joint_z))
+            .circle(self.inner_radius)
+            .workplane(offset=self.foot_joint_z - self.head_joint_z)
+            .circle(self.foot_inner_radius)
+            .loft(ruled=True)
         )
+
+        foot_bore = (
+            cq.Workplane('XY', origin=(0, 0, self.foot_joint_z))
+            .circle(self.foot_inner_radius)
+            .extrude(self.length - self.foot_joint_z)
+        )
+
+        bore = head_bore.union(body_bore).union(foot_bore)
 
         tube = cq.Workplane('XY').circle(self.outer_radius).extrude(self.length).cut(bore)
 
