@@ -5,6 +5,7 @@ import cadquery as cq
 class BaroqueFlute:
     class Body:
         bore_diameter = 19
+        foot_bore_diameter = 14
         length_above_blow_hole = 70
         length_below_blow_hole = 520
         wall_thickness = 1.5
@@ -74,6 +75,10 @@ class BaroqueFlute:
         return self.Body.bore_diameter/2
 
     @property
+    def foot_inner_radius(self):
+        return self.Body.foot_bore_diameter/2
+
+    @property
     def outer_radius(self):
         return self.inner_radius + self.Body.wall_thickness
 
@@ -115,14 +120,32 @@ class BaroqueFlute:
     def keyed_hole_z(self):
         return self.z(self.ToneHoles.positions_from_blow_hole[-1])
 
+    def bore(self):
+        z_axis = cq.Vector(0, 0, 1)
+
+        head = cq.Solid.makeCylinder(self.inner_radius, self.first_cut, cq.Vector(0, 0, 0), z_axis)
+
+        body = cq.Solid.makeCone(
+            self.inner_radius, self.foot_inner_radius,
+            self.tail_cut - self.first_cut,
+            cq.Vector(0, 0, self.first_cut), z_axis
+        )
+
+        foot = cq.Solid.makeCylinder(
+            self.foot_inner_radius, self.length - self.tail_cut,
+            cq.Vector(0, 0, self.tail_cut), z_axis
+        )
+
+        return cq.Workplane('XY').add(head).union(body).union(foot)
+
     def build_tube(self):
         blow_hole_radius = self.Embouchure.blow_hole_diameter/2
 
         flute = (
             cq.Workplane('XY')
-            .circle(self.inner_radius)
             .circle(self.outer_radius)
             .extrude(self.length)
+            .cut(self.bore())
         )
 
         flute = flute.cut(
