@@ -1,63 +1,165 @@
+import os
+from dataclasses import dataclass
+
 import cadquery as cq
 
+
+@dataclass(frozen=True)
+class Body:
+    bore_diameter: float = 19
+    wall_thickness: float = 1.5
+    length_above_blow_hole: float = 70
+    length_below_blow_hole: float = 520
+
+
+@dataclass(frozen=True)
+class Embouchure:
+    blow_hole_diameter: float = 8
+    cork_gap_to_blow_hole_edge: float = 4
+    cork_thickness: float = 2
+
+
+@dataclass(frozen=True)
+class ToneHoles:
+    positions_from_blow_hole: tuple = (220, 260, 300, 340, 380, 420, 470)
+    diameter: float = 7
+    body_split_after_hole: int = 3
+
+
+@dataclass(frozen=True)
+class Joints:
+    length: float = 20
+    thickness: float = 1.5
+    head_joint_from_blow_hole: float = 130
+    tail_joint_margin: float = 5
+
+
+@dataclass(frozen=True)
+class Hinge:
+    width: float = 15
+    radial_extent: float = 7.5
+
+
+@dataclass(frozen=True)
+class Key:
+    angle_deg: float = 6
+    width: float = 5
+    thickness: float = 4
+    length: float = 40
+    pivot_offset: float = 4
+    pivot_diameter: float = 1
+
+
+@dataclass(frozen=True)
+class Pad:
+    radius: float = 6.5
+    plug_length: float = 1.2
+    seat_wall: float = 1
+    seat_height: float = 1
+    seat_depth: float = 2
+
+
+@dataclass(frozen=True)
+class Spring:
+    angle_deg: float = 45
+    length: float = 8
+    distance_from_pivot: float = 10
+    tip_thickness: float = 0.5
+    base_thickness: float = 1.5
+
+
+@dataclass(frozen=True)
+class Clearances:
+    joint: float = 0.05
+    hinge_slot: float = 0.2
+    key_pivot: float = 0.2
+    pad_plug: float = 0.1
+    pad_key_slot: float = 1
+
+
 class BaroqueFlute:
-    CAP_POSITION = 4
-    CAP_THICKNESS = 2
-
-    BORE_THICKNESS = 1.5
-
-    BLOW_HOLE_POSITION = 70
-
-    LENGTH = 520
-
-    TONE_HOLE_POSITIONS = [
-        220,
-        260,
-        300,
-        340,
-        380,
-        420,
-        470
-    ]
-
-    HEAD_PIECE_LENGTH = 200
-
-    TAIL_PIECE_POSITION = 5
-
-    JOINT_LENGTH = 20
-    JOINT_THICKNESS = 1.5
-    JOINT_TOLERANCE = 0.05
-
-    HINGE_WIDTH = 15
-    HINGE_HEIGHT = 7.5
-
-    HINGE_TOLERANCE = 0.2
-
-    KEY_ANGLE = 6
-
-    KEY_WIDTH = 5
-    KEY_HEIGHT = 4
-    KEY_LENGTH = 40
-
-    KEY_HOLE_POSITION = 4
-    KEY_HOLE_DIAMETER = 1 + 0.2
-
     def __init__(
         self,
-
-        bore_diameter,
-
-        blow_hole_diameter,
-        tone_hole_diameter,
-
-        key_file
+        key_file,
+        body=Body(),
+        embouchure=Embouchure(),
+        tone_holes=ToneHoles(),
+        joints=Joints(),
+        hinge=Hinge(),
+        key=Key(),
+        pad=Pad(),
+        spring=Spring(),
+        clearances=Clearances()
     ):
         self.key_file = key_file
 
-        self.bore_diameter = bore_diameter
-        self.tone_hole_diameter = tone_hole_diameter
+        self.body = body
+        self.embouchure = embouchure
+        self.tone_holes = tone_holes
+        self.joints = joints
+        self.hinge = hinge
+        self.key_params = key
+        self.pad = pad
+        self.spring = spring
+        self.clearances = clearances
 
-        self.length = self.BLOW_HOLE_POSITION + self.LENGTH
+        self.flute = self._build_tube()
+
+    def _z(self, position_from_blow_hole):
+        return self.body.length_above_blow_hole + position_from_blow_hole
+
+    @property
+    def length(self):
+        return self.body.length_above_blow_hole + self.body.length_below_blow_hole
+
+    @property
+    def inner_radius(self):
+        return self.body.bore_diameter/2
+
+    @property
+    def outer_radius(self):
+        return self.inner_radius + self.body.wall_thickness
+
+    @property
+    def joint_outer_radius(self):
+        return self.outer_radius + self.joints.thickness
+
+    @property
+    def hinge_outer_radius(self):
+        return self.joint_outer_radius + self.hinge.radial_extent
+
+    @property
+    def key_pivot_radius(self):
+        return self.joint_outer_radius + self.key_params.pivot_offset
+
+    @property
+    def key_pivot_hole_radius(self):
+        return (self.key_params.pivot_diameter + self.clearances.key_pivot) / 2
+
+    @property
+    def tone_hole_radius(self):
+        return self.tone_holes.diameter/2
+
+    @property
+    def first_cut(self):
+        return self._z(self.joints.head_joint_from_blow_hole)
+
+    @property
+    def second_cut(self):
+        positions = self.tone_holes.positions_from_blow_hole
+        split = self.tone_holes.body_split_after_hole
+        return self._z((positions[split - 1] + positions[split]) / 2)
+
+    @property
+    def tail_cut(self):
+        return self.keyed_hole_z - self.tone_hole_radius - self.joints.tail_joint_margin - self.joints.length/2
+
+    @property
+    def keyed_hole_z(self):
+        return self._z(self.tone_holes.positions_from_blow_hole[-1])
+
+    def _build_tube(self):
+        blow_hole_radius = self.embouchure.blow_hole_diameter/2
 
         flute = (
             cq.Workplane('XY')
@@ -68,65 +170,31 @@ class BaroqueFlute:
 
         flute = flute.cut(
             cq.Workplane('YZ')
-            .circle(blow_hole_diameter/2)
+            .circle(blow_hole_radius)
             .extrude(self.outer_radius)
-            .translate((0, 0, self.BLOW_HOLE_POSITION))
+            .translate((0, 0, self._z(0)))
         )
 
-        cap = (
+        cork_top = self._z(0) - blow_hole_radius - self.embouchure.cork_gap_to_blow_hole_edge
+
+        cork = (
             cq.Workplane('XY')
             .circle(self.outer_radius)
-            .extrude(self.CAP_THICKNESS)
-            .translate((0, 0, self.BLOW_HOLE_POSITION - blow_hole_diameter/2 - self.CAP_POSITION - self.CAP_THICKNESS))
+            .extrude(self.embouchure.cork_thickness)
+            .translate((0, 0, cork_top - self.embouchure.cork_thickness))
         )
 
-        flute = flute.union(cap)
+        flute = flute.union(cork)
 
-        for position in self.TONE_HOLE_POSITIONS:
+        for position in self.tone_holes.positions_from_blow_hole:
             flute = flute.cut(
                 cq.Workplane('YZ')
-                .circle(self.tone_hole_diameter/2)
+                .circle(self.tone_hole_radius)
                 .extrude(self.outer_radius)
-                .translate((0, 0, self.BLOW_HOLE_POSITION + position))
+                .translate((0, 0, self._z(position)))
             )
 
-        self.flute = flute
-
-    @property
-    def inner_radius(self):
-        return self.bore_diameter/2
-
-    @property
-    def outer_radius(self):
-        return self.inner_radius + self.BORE_THICKNESS
-
-    @property
-    def joint_outer_radius(self):
-        return self.outer_radius + self.JOINT_THICKNESS
-
-    @property
-    def hinge_outer_radius(self):
-        return self.joint_outer_radius + self.HINGE_HEIGHT
-
-    @property
-    def key_pivot_radius(self):
-        return self.joint_outer_radius + self.KEY_HOLE_POSITION
-
-    @property
-    def first_cut(self):
-        return self.HEAD_PIECE_LENGTH
-
-    @property
-    def second_cut(self):
-        return self.BLOW_HOLE_POSITION + (self.TONE_HOLE_POSITIONS[2] + self.TONE_HOLE_POSITIONS[3]) / 2
-
-    @property
-    def tail_cut(self):
-        return self.BLOW_HOLE_POSITION + self.TONE_HOLE_POSITIONS[-1] - self.tone_hole_diameter/2 - self.TAIL_PIECE_POSITION - self.JOINT_LENGTH/2
-
-    @property
-    def last_tone_hole_z(self):
-        return self.BLOW_HOLE_POSITION + self.TONE_HOLE_POSITIONS[-1]
+        return flute
 
     def _section(self, start, end=None):
         piece = self.flute
@@ -151,17 +219,17 @@ class BaroqueFlute:
         if joint is None:
             joint = self.joint()
 
-        return joint.translate((0, 0, z - self.JOINT_LENGTH/2))
+        return joint.translate((0, 0, z - self.joints.length/2))
 
     def joint(self):
         joint = (
             cq.Workplane('XY')
             .circle(self.joint_outer_radius)
-            .extrude(self.JOINT_LENGTH)
+            .extrude(self.joints.length)
             .cut(
                 cq.Workplane('XY')
-                .circle(self.outer_radius + self.JOINT_TOLERANCE)
-                .extrude(self.JOINT_LENGTH)
+                .circle(self.outer_radius + self.clearances.joint)
+                .extrude(self.joints.length)
             )
         )
 
@@ -181,10 +249,10 @@ class BaroqueFlute:
 
         piece = piece.union(
             cq.Workplane('YZ')
-            .circle(self.tone_hole_diameter/2)
-            .circle(self.tone_hole_diameter/2 + 1)
-            .extrude(3)
-            .translate((self.outer_radius - 2, 0, self.last_tone_hole_z))
+            .circle(self.tone_hole_radius)
+            .circle(self.tone_hole_radius + self.pad.seat_wall)
+            .extrude(self.pad.seat_depth + self.pad.seat_height)
+            .translate((self.outer_radius - self.pad.seat_depth, 0, self.keyed_hole_z))
             .cut(
                 cq.Workplane('XY')
                 .circle(self.inner_radius)
@@ -192,34 +260,35 @@ class BaroqueFlute:
             )
         )
 
-        hinge_box_center = (self.hinge_outer_radius / 2, 0, self.JOINT_LENGTH/2)
+        joint_length = self.joints.length
+        hinge_box_center = (self.hinge_outer_radius / 2, 0, joint_length/2)
 
         hinge = (
             cq.Workplane('XY')
             .circle(self.hinge_outer_radius)
-            .extrude(self.JOINT_LENGTH)
+            .extrude(joint_length)
             .intersect(
                 cq.Workplane('XY')
-                .box(self.hinge_outer_radius, self.HINGE_WIDTH, self.JOINT_LENGTH)
+                .box(self.hinge_outer_radius, self.hinge.width, joint_length)
                 .translate(hinge_box_center)
             )
             .cut(
                 cq.Workplane('XY')
                 .circle(self.outer_radius)
-                .extrude(self.JOINT_LENGTH)
+                .extrude(joint_length)
             )
         )
 
         hinge = (
             hinge.cut(
                 cq.Workplane('XY')
-                .box(self.hinge_outer_radius, self.KEY_WIDTH + self.HINGE_TOLERANCE, self.JOINT_LENGTH)
+                .box(self.hinge_outer_radius, self.key_params.width + self.clearances.hinge_slot, joint_length)
                 .translate(hinge_box_center)
             )
             .cut(
                 cq.Workplane('XZ')
-                .cylinder(self.HINGE_WIDTH, self.KEY_HOLE_DIAMETER/2)
-                .translate((self.key_pivot_radius, 0, self.JOINT_LENGTH/2))
+                .cylinder(self.hinge.width, self.key_pivot_hole_radius)
+                .translate((self.key_pivot_radius, 0, joint_length/2))
             )
         )
 
@@ -227,52 +296,42 @@ class BaroqueFlute:
 
     def _to_key_pivot(self, shape):
         return (
-            shape.rotate((0, 1, 0), (0, 0, 0), self.KEY_ANGLE)
+            shape.rotate((0, 1, 0), (0, 0, 0), self.key_params.angle_deg)
             .translate((self.key_pivot_radius, 0, self.tail_cut))
         )
 
     def key(self):
-        STOPPER_LENGTH = 1.2
-        STOPPER_RADIUS = 6.5
-
-        STOPPER_TOLERANCE = 0.1
-        STOPPER_TOLERANCE_2 = 1
-
-        SPRING_ANGLE = 90 - 45
-
-        SPRING_LENGTH = 8
-        SPRING_POSITION = 10
-
-        SPRING_TOP_THICKNESS = 0.5
-        SPRING_BASE_THICKNESS = 1.5
+        key = self.key_params
+        pad = self.pad
+        spring_params = self.spring
 
         stopper = (
             cq.Workplane('YZ')
-            .cylinder(self.KEY_HEIGHT, STOPPER_RADIUS)
+            .cylinder(key.thickness, pad.radius)
             .union(
                 cq.Workplane('YZ')
-                .cylinder(STOPPER_LENGTH * 2, self.tone_hole_diameter/2 - STOPPER_TOLERANCE)
-                .translate((-self.KEY_HEIGHT/2, 0, 0))
+                .cylinder(pad.plug_length * 2, self.tone_hole_radius - self.clearances.pad_plug)
+                .translate((-key.thickness/2, 0, 0))
             )
         )
 
         stopper = stopper.translate(
-            (self.outer_radius + self.KEY_HEIGHT/2 + 1, 0, self.last_tone_hole_z)
+            (self.outer_radius + key.thickness/2 + pad.seat_height, 0, self.keyed_hole_z)
         )
 
         spring = (
             cq.Workplane('XZ')
             .polyline([
-                (-SPRING_BASE_THICKNESS/2, 0),
-                (SPRING_BASE_THICKNESS/2, 0),
-                (SPRING_TOP_THICKNESS/2, SPRING_LENGTH),
-                (-SPRING_TOP_THICKNESS/2, SPRING_LENGTH)
+                (-spring_params.base_thickness/2, 0),
+                (spring_params.base_thickness/2, 0),
+                (spring_params.tip_thickness/2, spring_params.length),
+                (-spring_params.tip_thickness/2, spring_params.length)
             ])
             .close()
-            .extrude(self.KEY_WIDTH)
-            .translate((0, (self.KEY_WIDTH)/2, 0))
-            .rotate((0, 1, 0), (0, 0, 0), SPRING_ANGLE)
-            .translate((0, 0, -SPRING_POSITION))
+            .extrude(key.width)
+            .translate((0, key.width/2, 0))
+            .rotate((0, 1, 0), (0, 0, 0), spring_params.angle_deg)
+            .translate((0, 0, -spring_params.distance_from_pivot))
         )
 
         shaft = (
@@ -280,38 +339,34 @@ class BaroqueFlute:
             .wires()
             .toPending()
             .mirrorY()
-            .extrude(self.KEY_HEIGHT)
-            .translate((0, self.KEY_LENGTH/2, -self.KEY_HEIGHT/2))
+            .extrude(key.thickness)
+            .translate((0, key.length/2, -key.thickness/2))
             .rotate((0, 0, 0), (0, 0, 1), 90)
             .rotate((0, 0, 0), (0, 1, 0), 90)
             .cut(
                 cq.Workplane('XZ')
-                .cylinder(self.HINGE_WIDTH, self.KEY_HOLE_DIAMETER/2)
+                .cylinder(self.hinge.width, self.key_pivot_hole_radius)
             )
             .cut(spring)
         )
 
-        shaft_tolerance = (
+        pad_key_slot = (
             cq.Workplane('YZ')
-            .box(self.KEY_WIDTH, self.KEY_LENGTH + STOPPER_TOLERANCE_2, self.KEY_HEIGHT)
+            .box(key.width, key.length + self.clearances.pad_key_slot, key.thickness)
         )
 
         shaft = self._to_key_pivot(shaft)
         spring = self._to_key_pivot(spring)
-        shaft_tolerance = self._to_key_pivot(shaft_tolerance)
+        pad_key_slot = self._to_key_pivot(pad_key_slot)
 
-        stopper = stopper.cut(shaft_tolerance)
+        stopper = stopper.cut(pad_key_slot)
 
         return shaft, spring, stopper
 
-import os
 
 KEY_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'key.dxf')
 
-flute = BaroqueFlute(
-    19, 8, 7,
-    KEY_FILE
-)
+flute = BaroqueFlute(KEY_FILE)
 
 GREEN = 'hsl(120, 100%, 45%)'
 YELLOW = 'hsl(55, 100%, 50%)'
