@@ -8,7 +8,7 @@ class BaroqueFlute:
         foot_bore_diameter = 14
         length_above_blow_hole = 70
         length_below_blow_hole = 520
-        wall_thickness = 1.5
+        wall_thickness = 3
 
     class Embouchure:
         blow_hole_diameter = 8
@@ -21,6 +21,11 @@ class BaroqueFlute:
         positions_from_blow_hole = (220, 260, 300, 340, 380, 420, 470)
 
     class Joints:
+        class ORing:
+            cross_section = 1.5
+            groove_width = 2
+            squeeze = 0.2
+
         head_joint_from_blow_hole = 130
         length = 20
         tail_joint_margin = 5
@@ -55,7 +60,7 @@ class BaroqueFlute:
 
     class Clearances:
         hinge_slot = 0.2
-        joint = 0.05
+        joint = 0.2
         key_pivot = 0.2
         pad_key_slot = 1
         pad_plug = 0.1
@@ -97,6 +102,20 @@ class BaroqueFlute:
     @property
     def key_pivot_hole_radius(self):
         return (self.Key.pivot_diameter + self.Clearances.key_pivot) / 2
+
+    @property
+    def o_ring_groove_radius(self):
+        o_ring = self.Joints.ORing
+        return self.outer_radius + self.Clearances.joint - o_ring.cross_section * (1 - o_ring.squeeze)
+
+    @property
+    def o_ring_groove_positions(self):
+        overlap_middle = self.Joints.length/4
+        return (
+            self.first_cut + overlap_middle,
+            self.second_cut + overlap_middle,
+            self.tail_cut - overlap_middle
+        )
 
     @property
     def tone_hole_radius(self):
@@ -166,6 +185,15 @@ class BaroqueFlute:
 
         flute = flute.union(cork)
 
+        for position in self.o_ring_groove_positions:
+            flute = flute.cut(
+                cq.Workplane('XY')
+                .circle(self.outer_radius)
+                .circle(self.o_ring_groove_radius)
+                .extrude(self.Joints.ORing.groove_width)
+                .translate((0, 0, position - self.Joints.ORing.groove_width/2))
+            )
+
         for position in self.ToneHoles.positions_from_blow_hole:
             flute = flute.cut(
                 cq.Workplane('YZ')
@@ -195,31 +223,39 @@ class BaroqueFlute:
 
         return piece
 
-    def joint_at(self, z, joint=None):
-        if joint is None:
-            joint = self.joint()
-
+    def joint_at(self, z, joint):
         return joint.translate((0, 0, z - self.Joints.length/2))
 
-    def joint(self):
-        joint = (
+    def joint(self, bonded_below):
+        length = self.Joints.length
+        socket_radius = self.outer_radius + self.Clearances.joint
+
+        sleeve = (
             cq.Workplane('XY')
             .circle(self.joint_outer_radius)
-            .extrude(self.Joints.length)
+            .extrude(length)
             .cut(
                 cq.Workplane('XY')
-                .circle(self.outer_radius + self.Clearances.joint)
-                .extrude(self.Joints.length)
+                .circle(socket_radius)
+                .extrude(length)
             )
         )
 
-        return joint
+        bond = (
+            cq.Workplane('XY')
+            .circle(socket_radius)
+            .circle(self.outer_radius)
+            .extrude(length/2)
+            .translate((0, 0, 0 if bonded_below else length/2))
+        )
+
+        return sleeve.union(bond)
 
     def head_piece(self):
-        return self.section(0, self.first_cut).union(self.joint_at(self.first_cut))
+        return self.section(0, self.first_cut).union(self.joint_at(self.first_cut, self.joint(bonded_below=True)))
 
     def first_piece(self):
-        return self.section(self.first_cut, self.second_cut).union(self.joint_at(self.second_cut))
+        return self.section(self.first_cut, self.second_cut).union(self.joint_at(self.second_cut, self.joint(bonded_below=True)))
 
     def second_piece(self):
         return self.section(self.second_cut, self.tail_cut)
@@ -255,7 +291,7 @@ class BaroqueFlute:
             )
             .cut(
                 cq.Workplane('XY')
-                .circle(self.outer_radius)
+                .circle(self.outer_radius + self.Clearances.joint)
                 .extrude(joint_length)
             )
         )
@@ -273,7 +309,7 @@ class BaroqueFlute:
             )
         )
 
-        return piece.union(self.joint_at(self.tail_cut, self.joint().union(hinge)))
+        return piece.union(self.joint_at(self.tail_cut, self.joint(bonded_below=False).union(hinge)))
 
     def to_key_pivot(self, shape):
         return (
