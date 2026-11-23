@@ -4,69 +4,75 @@ import cadquery as cq
 
 class BaroqueFlute:
     BORE_DIAMETER = 19
+    WALL_THICKNESS = 3
     FOOT_BORE_DIAMETER = 14
     LENGTH_ABOVE_BLOW_HOLE = 70
     LENGTH_BELOW_BLOW_HOLE = 520
-    WALL_THICKNESS = 3
 
-    BLOW_HOLE_DIAMETER = 8
     CORK_DISTANCE = 19
     CORK_THICKNESS = 2
+    BLOW_HOLE_DIAMETER = 8
 
-    BODY_SPLIT_AFTER_HOLE = 3
     TONE_HOLE_DIAMETER = 7
     TONE_HOLE_POSITIONS = (220, 260, 300, 340, 380, 420, 470)
+    BODY_SPLIT_AFTER_HOLE = 3
 
-    FOOT_JOINT_MARGIN = 5
-    HEAD_JOINT_FROM_BLOW_HOLE = 130
     JOINT_LENGTH = 20
     JOINT_THICKNESS = 1.5
+    FOOT_JOINT_MARGIN = 5
+    HEAD_JOINT_FROM_BLOW_HOLE = 130
 
-    O_RING_CROSS_SECTION = 1.5
-    O_RING_GROOVE_WIDTH = 2
     O_RING_SQUEEZE = 0.2
+    O_RING_GROOVE_WIDTH = 2
+    O_RING_CROSS_SECTION = 1.5
 
-    KEY_ANGLE_DEGREES = 6
-    KEY_LENGTH = 40
-    KEY_PIVOT_DIAMETER = 1
-    KEY_PIVOT_OFFSET = 4
-    KEY_PROFILE_FILE = Path(__file__).with_name('key.dxf')
-    KEY_THICKNESS = 4
     KEY_WIDTH = 5
+    KEY_LENGTH = 40
+    KEY_THICKNESS = 4
+    KEY_PIVOT_OFFSET = 4
+    KEY_ANGLE_DEGREES = 6
+    KEY_PIVOT_DIAMETER = 1
+    KEY_PROFILE_FILE = Path(__file__).with_name('key.dxf')
 
-    HINGE_RADIAL_EXTENT = 7.5
     HINGE_WIDTH = 15
+    HINGE_RADIAL_EXTENT = 7.5
 
-    PAD_PLUG_LENGTH = 1.2
     PAD_RADIUS = 6.5
+    PAD_SEAT_WALL = 1
     PAD_SEAT_DEPTH = 2
     PAD_SEAT_HEIGHT = 1
-    PAD_SEAT_WALL = 1
+    PAD_PLUG_LENGTH = 1.2
 
+    SPRING_LENGTH = 8
     SPRING_ANGLE_DEGREES = 45
+    SPRING_TIP_THICKNESS = 0.5
     SPRING_BASE_THICKNESS = 1.5
     SPRING_DISTANCE_FROM_PIVOT = 10
-    SPRING_LENGTH = 8
-    SPRING_TIP_THICKNESS = 0.5
 
-    HINGE_SLOT_CLEARANCE = 0.2
     JOINT_CLEARANCE = 0.2
-    KEY_PIVOT_CLEARANCE = 0.2
-    PAD_KEY_SLOT_CLEARANCE = 1
     PAD_PLUG_CLEARANCE = 0.1
+    KEY_PIVOT_CLEARANCE = 0.2
+    HINGE_SLOT_CLEARANCE = 0.2
+    PAD_KEY_SLOT_CLEARANCE = 1
 
     def __init__(self):
         self.length = self.LENGTH_ABOVE_BLOW_HOLE + self.LENGTH_BELOW_BLOW_HOLE
 
         self.inner_radius = self.BORE_DIAMETER/2
-        self.foot_inner_radius = self.FOOT_BORE_DIAMETER/2
         self.outer_radius = self.inner_radius + self.WALL_THICKNESS
+
+        self.tone_hole_radius = self.TONE_HOLE_DIAMETER/2
+
+        self.foot_inner_radius = self.FOOT_BORE_DIAMETER/2
+
         self.socket_radius = self.outer_radius + self.JOINT_CLEARANCE
         self.socket_outer_radius = self.outer_radius + self.JOINT_THICKNESS
+
         self.hinge_outer_radius = self.socket_outer_radius + self.HINGE_RADIAL_EXTENT
+
         self.key_pivot_radius = self.socket_outer_radius + self.KEY_PIVOT_OFFSET
         self.key_pivot_hole_radius = (self.KEY_PIVOT_DIAMETER + self.KEY_PIVOT_CLEARANCE) / 2
-        self.tone_hole_radius = self.TONE_HOLE_DIAMETER/2
+
         self.o_ring_groove_radius = self.socket_radius - self.O_RING_CROSS_SECTION * (1 - self.O_RING_SQUEEZE)
 
         split = self.BODY_SPLIT_AFTER_HOLE
