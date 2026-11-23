@@ -95,6 +95,12 @@ class BaroqueFlute:
             self.foot_joint_z - self.JOINT_LENGTH/4
         )
 
+        self.key_pivot = cq.Location(
+            cq.Vector(self.key_pivot_radius, 0, self.foot_joint_z),
+            cq.Vector(0, -1, 0),
+            self.KEY_ANGLE_DEGREES
+        )
+
         self.tube = self.build_tube()
 
     def z(self, position_from_blow_hole):
@@ -206,12 +212,6 @@ class BaroqueFlute:
             .union(self.socket(self.foot_joint_z, bonded_below=False).union(self.hinge()))
         )
 
-    def to_key_pivot(self, shape):
-        return (
-            shape.rotate((0, 0, 0), (0, -1, 0), self.KEY_ANGLE_DEGREES)
-            .translate((self.key_pivot_radius, 0, self.foot_joint_z))
-        )
-
     def key(self):
         spring = (
             cq.Workplane('XZ')
@@ -241,7 +241,7 @@ class BaroqueFlute:
             .cut(spring)
         )
 
-        pad_key_slot = cq.Workplane('YZ').box(self.KEY_WIDTH, self.KEY_LENGTH + self.PAD_KEY_SLOT_CLEARANCE, self.KEY_THICKNESS)
+        pad_key_slot = cq.Workplane('YZ').box(self.KEY_WIDTH, self.KEY_LENGTH + self.PAD_KEY_SLOT_CLEARANCE, self.KEY_THICKNESS).val().moved(self.key_pivot)
 
         pad = (
             cq.Workplane('YZ')
@@ -252,10 +252,10 @@ class BaroqueFlute:
                 .translate((-self.KEY_THICKNESS/2, 0, 0))
             )
             .translate((self.outer_radius + self.KEY_THICKNESS/2 + self.PAD_SEAT_HEIGHT, 0, self.keyed_hole_z))
-            .cut(self.to_key_pivot(pad_key_slot))
+            .cut(pad_key_slot)
         )
 
-        return self.to_key_pivot(shaft), self.to_key_pivot(spring), pad
+        return shaft.val().moved(self.key_pivot), spring.val().moved(self.key_pivot), pad
 
 GREEN = 'hsl(120, 100%, 45%)'
 YELLOW = 'hsl(55, 100%, 50%)'
