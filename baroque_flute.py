@@ -1,6 +1,6 @@
+from math import radians, tan
 from pathlib import Path
 from functools import cached_property
-from math import radians, tan
 
 import cadquery as cq
 
@@ -12,33 +12,19 @@ class BaroqueFlute:
 
     WALL_THICKNESS = 3
 
-    BLOW_HOLE_WIDTH = 8.5
-    BLOW_HOLE_LENGTH = 9.5
-
-    FOOT_BORE_DIAMETER = 14
-
-    LENGTH_ABOVE_BLOW_HOLE = 70
-    LENGTH_BELOW_BLOW_HOLE = 520
-
-    TONE_HOLE_DIAMETER = 7
-    TONE_HOLE_POSITIONS = (220, 260, 300, 340, 380, 420, 470)
-
-    EMBOUCHURE_BAND_LENGTH = 30
-    EMBOUCHURE_WALL_THICKNESS = 5
-    EMBOUCHURE_UNDERCUT_DEGREES = 7
-
-    BODY_SPLIT_AFTER_HOLE = 3
-
     JOINT_LENGTH = 20
     JOINT_THICKNESS = 1.5
 
+    PAD_RADIUS = 6.5
+    PAD_SEAT_WALL = 1
+    PAD_SEAT_DEPTH = 2
+    PAD_SEAT_HEIGHT = 1
+    PAD_PLUG_LENGTH = 1.2
+
+    BLOW_HOLE_WIDTH = 8.5
+    BLOW_HOLE_LENGTH = 9.5
+
     FOOT_JOINT_MARGIN = 5
-
-    HEAD_JOINT_FROM_BLOW_HOLE = 130
-
-    O_RING_SQUEEZE = 0.2
-    O_RING_GROOVE_WIDTH = 2
-    O_RING_CROSS_SECTION = 1.5
 
     KEY_WIDTH = 5
     KEY_LENGTH = 40
@@ -48,14 +34,30 @@ class BaroqueFlute:
     KEY_ANGLE_DEGREES = 6
     KEY_PIVOT_DIAMETER = 1
 
+    FOOT_BORE_DIAMETER = 14
+
     HINGE_WIDTH = 15
     HINGE_RADIAL_EXTENT = 7.5
 
-    PAD_RADIUS = 6.5
-    PAD_SEAT_WALL = 1
-    PAD_SEAT_DEPTH = 2
-    PAD_SEAT_HEIGHT = 1
-    PAD_PLUG_LENGTH = 1.2
+    TONE_HOLE_DIAMETER = 7
+    TONE_HOLE_POSITIONS = (220, 260, 300, 340, 380, 420, 470)
+
+    O_RING_SQUEEZE = 0.2
+    O_RING_GROOVE_WIDTH = 2
+    O_RING_CROSS_SECTION = 1.5
+
+    BODY_SPLIT_AFTER_HOLE = 3
+
+    JOINT_CLEARANCE = 0.2
+    PAD_PLUG_CLEARANCE = 0.1
+    KEY_PIVOT_CLEARANCE = 0.2
+    HINGE_SLOT_CLEARANCE = 0.2
+    PAD_KEY_SLOT_CLEARANCE = 1
+
+    LENGTH_ABOVE_BLOW_HOLE = 70
+    LENGTH_BELOW_BLOW_HOLE = 520
+
+    HEAD_JOINT_FROM_BLOW_HOLE = 130
 
     SPRING_LENGTH = 8
     SPRING_ANGLE_DEGREES = 45
@@ -63,11 +65,9 @@ class BaroqueFlute:
     SPRING_BASE_THICKNESS = 1.5
     SPRING_DISTANCE_FROM_PIVOT = 10
 
-    JOINT_CLEARANCE = 0.2
-    PAD_PLUG_CLEARANCE = 0.1
-    KEY_PIVOT_CLEARANCE = 0.2
-    HINGE_SLOT_CLEARANCE = 0.2
-    PAD_KEY_SLOT_CLEARANCE = 1
+    EMBOUCHURE_BAND_LENGTH = 30
+    EMBOUCHURE_WALL_THICKNESS = 5
+    EMBOUCHURE_UNDERCUT_DEGREES = 7
 
     def __init__(self):
         self.length = self.LENGTH_ABOVE_BLOW_HOLE + self.LENGTH_BELOW_BLOW_HOLE
@@ -116,9 +116,6 @@ class BaroqueFlute:
     def ring(self, outer_radius, inner_radius, height):
         return cq.Workplane('XY').circle(outer_radius).circle(inner_radius).extrude(height)
 
-    def radial_hole(self, radius, z):
-        return cq.Workplane('YZ').circle(radius).extrude(self.outer_radius).translate((0, 0, z))
-
     def blow_hole(self):
         undercut_growth = 2 * self.embouchure_outer_radius * tan(radians(self.EMBOUCHURE_UNDERCUT_DEGREES))
 
@@ -128,6 +125,9 @@ class BaroqueFlute:
             .extrude(self.embouchure_outer_radius, taper=self.EMBOUCHURE_UNDERCUT_DEGREES)
             .translate((0, 0, self.z(0)))
         )
+
+    def radial_hole(self, radius, z):
+        return cq.Workplane('YZ').circle(radius).extrude(self.outer_radius).translate((0, 0, z))
 
     @cached_property
     def tube(self):
