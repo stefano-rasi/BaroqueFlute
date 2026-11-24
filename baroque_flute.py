@@ -7,10 +7,10 @@ import cadquery as cq
 class BaroqueFlute:
     BORE_DIAMETER = 19
 
+    WALL_THICKNESS = 3
+
     CORK_DISTANCE = 19
     CORK_THICKNESS = 2
-
-    WALL_THICKNESS = 3
 
     JOINT_LENGTH = 20
     JOINT_THICKNESS = 1.5
