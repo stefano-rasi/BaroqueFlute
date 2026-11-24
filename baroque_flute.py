@@ -176,7 +176,7 @@ class BaroqueFlute:
 
         return tube
 
-    def slice(self, start, end=None):
+    def segment(self, start, end=None):
         piece = self.tube
 
         if start > 0:
@@ -219,17 +219,17 @@ class BaroqueFlute:
         )
 
     def head(self):
-        return self.slice(0, self.head_joint_z).union(self.socket(self.head_joint_z, bonded_below=True))
+        return self.segment(0, self.head_joint_z).union(self.socket(self.head_joint_z, bonded_below=True))
 
     def upper_body(self):
-        return self.slice(self.head_joint_z, self.body_joint_z).union(self.socket(self.body_joint_z, bonded_below=True))
+        return self.segment(self.head_joint_z, self.body_joint_z).union(self.socket(self.body_joint_z, bonded_below=True))
 
     def lower_body(self):
-        return self.slice(self.body_joint_z, self.foot_joint_z)
+        return self.segment(self.body_joint_z, self.foot_joint_z)
 
     def foot(self):
         return (
-            self.slice(self.foot_joint_z)
+            self.segment(self.foot_joint_z)
             .union(self.pad_seat())
             .union(self.socket(self.foot_joint_z, bonded_below=False).union(self.hinge()))
         )
