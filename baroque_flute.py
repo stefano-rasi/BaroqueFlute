@@ -39,8 +39,9 @@ class BaroqueFlute:
     HINGE_WIDTH = 15
     HINGE_RADIAL_EXTENT = 7.5
 
-    TONE_HOLE_DIAMETER = 7
-    TONE_HOLE_POSITIONS = (220, 260, 300, 340, 380, 420, 470)
+    TONE_HOLE_UNDERCUT_DEGREES = 7
+    TONE_HOLE_DIAMETERS = (7.7, 7.1, 6.9, 6.4, 7.7, 5.1, 7)
+    TONE_HOLE_POSITIONS = (239.8, 273.2, 313.2, 363.3, 388.3, 428.3, 476.6)
 
     O_RING_SQUEEZE = 0.2
     O_RING_GROOVE_WIDTH = 2
@@ -55,7 +56,7 @@ class BaroqueFlute:
     PAD_KEY_SLOT_CLEARANCE = 1
 
     LENGTH_ABOVE_BLOW_HOLE = 70
-    LENGTH_BELOW_BLOW_HOLE = 520
+    LENGTH_BELOW_BLOW_HOLE = 529.8
 
     HEAD_JOINT_FROM_BLOW_HOLE = 130
 
@@ -75,7 +76,7 @@ class BaroqueFlute:
         self.inner_radius = self.BORE_DIAMETER/2
         self.outer_radius = self.inner_radius + self.WALL_THICKNESS
 
-        self.tone_hole_radius = self.TONE_HOLE_DIAMETER/2
+        self.keyed_hole_radius = self.TONE_HOLE_DIAMETERS[-1]/2
 
         self.foot_inner_radius = self.FOOT_BORE_DIAMETER/2
 
@@ -96,7 +97,7 @@ class BaroqueFlute:
         self.head_joint_z = self.z(self.HEAD_JOINT_FROM_BLOW_HOLE)
         self.body_joint_z = self.z((self.TONE_HOLE_POSITIONS[split - 1] + self.TONE_HOLE_POSITIONS[split]) / 2)
         self.keyed_hole_z = self.z(self.TONE_HOLE_POSITIONS[-1])
-        self.foot_joint_z = self.keyed_hole_z - self.tone_hole_radius - self.FOOT_JOINT_MARGIN - self.JOINT_LENGTH/2
+        self.foot_joint_z = self.keyed_hole_z - self.keyed_hole_radius - self.FOOT_JOINT_MARGIN - self.JOINT_LENGTH/2
 
         self.o_ring_groove_positions = (
             self.head_joint_z + self.JOINT_LENGTH/4,
@@ -126,8 +127,15 @@ class BaroqueFlute:
             .translate((0, 0, self.z(0)))
         )
 
-    def radial_hole(self, radius, z):
-        return cq.Workplane('YZ').circle(radius).extrude(self.outer_radius).translate((0, 0, z))
+    def tone_hole(self, diameter, z):
+        undercut_growth = 2 * self.outer_radius * tan(radians(self.TONE_HOLE_UNDERCUT_DEGREES))
+
+        return (
+            cq.Workplane('YZ')
+            .circle((diameter + undercut_growth)/2)
+            .extrude(self.outer_radius, taper=self.TONE_HOLE_UNDERCUT_DEGREES)
+            .translate((0, 0, z))
+        )
 
     @cached_property
     def tube(self):
@@ -171,8 +179,8 @@ class BaroqueFlute:
 
             tube = tube.cut(groove.translate((0, 0, position - self.O_RING_GROOVE_WIDTH/2)))
 
-        for position in self.TONE_HOLE_POSITIONS:
-            tube = tube.cut(self.radial_hole(self.tone_hole_radius, self.z(position)))
+        for position, diameter in zip(self.TONE_HOLE_POSITIONS, self.TONE_HOLE_DIAMETERS):
+            tube = tube.cut(self.tone_hole(diameter, self.z(position)))
 
         return tube
 
@@ -197,8 +205,8 @@ class BaroqueFlute:
     def pad_seat(self):
         return (
             cq.Workplane('YZ')
-            .circle(self.tone_hole_radius)
-            .circle(self.tone_hole_radius + self.PAD_SEAT_WALL)
+            .circle(self.keyed_hole_radius)
+            .circle(self.keyed_hole_radius + self.PAD_SEAT_WALL)
             .extrude(self.PAD_SEAT_DEPTH + self.PAD_SEAT_HEIGHT)
             .translate((self.outer_radius - self.PAD_SEAT_DEPTH, 0, self.keyed_hole_z))
             .cut(cq.Workplane('XY').circle(self.inner_radius).extrude(self.length))
@@ -270,7 +278,7 @@ class BaroqueFlute:
             .cylinder(self.KEY_THICKNESS, self.PAD_RADIUS)
             .union(
                 cq.Workplane('YZ')
-                .cylinder(self.PAD_PLUG_LENGTH * 2, self.tone_hole_radius - self.PAD_PLUG_CLEARANCE)
+                .cylinder(self.PAD_PLUG_LENGTH * 2, self.keyed_hole_radius - self.PAD_PLUG_CLEARANCE)
                 .translate((-self.KEY_THICKNESS/2, 0, 0))
             )
             .translate((self.outer_radius + self.KEY_THICKNESS/2 + self.PAD_SEAT_HEIGHT, 0, self.keyed_hole_z))
