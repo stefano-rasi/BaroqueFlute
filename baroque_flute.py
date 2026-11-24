@@ -302,11 +302,13 @@ class BaroqueFlute:
 GREEN = 'hsl(120, 100%, 45%)'
 YELLOW = 'hsl(55, 100%, 50%)'
 
+OPACITY = 1
+
 flute = BaroqueFlute()
 
-show_object(flute.head(), GREEN, 0.5)
-show_object(flute.upper_body(), GREEN, 0.5)
-show_object(flute.lower_body(), GREEN, 0.5)
-show_object(flute.foot(), GREEN, 0.5)
+show_object(flute.head(), GREEN, OPACITY)
+show_object(flute.upper_body(), GREEN, OPACITY)
+show_object(flute.lower_body(), GREEN, OPACITY)
+show_object(flute.foot(), GREEN, OPACITY)
 
-show_object(flute.key(), YELLOW, 0.5)
+show_object(flute.key(), YELLOW, OPACITY)
