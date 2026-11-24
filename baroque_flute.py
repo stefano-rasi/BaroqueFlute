@@ -5,6 +5,17 @@ from functools import cached_property
 import cadquery as cq
 
 class BaroqueFlute:
+    BORE_PROFILE = (
+        (113.2, 17.2),
+        (216, 15.5),
+        (251.8, 14.9),
+        (286.7, 14.4),
+        (342.4, 13.8),
+        (375.4, 13.2),
+        (410.3, 12.5),
+        (468.8, 11.4)
+    )
+
     BORE_DIAMETER = 17.2
 
     WALL_THICKNESS = 3.2
@@ -25,8 +36,6 @@ class BaroqueFlute:
     BLOW_HOLE_LENGTH = 8.5
 
     FOOT_JOINT_MARGIN = 5
-
-    BORE_PROFILE = ((113.2, 17.2), (216, 15.5), (251.8, 14.9), (286.7, 14.4), (342.4, 13.8), (375.4, 13.2), (410.3, 12.5), (468.8, 11.4))
 
     KEY_WIDTH = 5
     KEY_LENGTH = 40
@@ -53,7 +62,7 @@ class BaroqueFlute:
     PAD_KEY_SLOT_CLEARANCE = 1
 
     LENGTH_ABOVE_BLOW_HOLE = 70
-    LENGTH_BELOW_BLOW_HOLE = 507.4
+    LENGTH_BELOW_BLOW_HOLE = 509.3
 
     HEAD_JOINT_FROM_BLOW_HOLE = 130
 
@@ -63,9 +72,9 @@ class BaroqueFlute:
     SPRING_BASE_THICKNESS = 1.5
     SPRING_DISTANCE_FROM_PIVOT = 10
 
-    TONE_HOLE_DIAMETERS = (6.2, 6, 5.1, 5.2, 5.3, 4.2, 5.9)
-    TONE_HOLE_POSITIONS = (216, 251.8, 286.7, 342.4, 375.4, 410.3, 468.8)
-    TONE_HOLE_UNDERCUT_DEGREES = 0
+    TONE_HOLE_DIAMETERS = (6.7, 6.5, 5.6, 5.7, 5.8, 4.7, 6.4)
+    TONE_HOLE_POSITIONS = (221.9, 257.9, 294, 351, 381.9, 417.4, 474.7)
+    TONE_HOLE_UNDERCUT_DEGREES = 7
 
     EMBOUCHURE_BAND_LENGTH = 30
     EMBOUCHURE_WALL_THICKNESS = 5
@@ -134,7 +143,9 @@ class BaroqueFlute:
         return (
             cq.Workplane('YZ')
             .circle((diameter + undercut_growth)/2)
-            .extrude(self.outer_radius, taper=self.TONE_HOLE_UNDERCUT_DEGREES)
+            .workplane(offset=self.outer_radius)
+            .circle(diameter/2)
+            .loft(ruled=True)
             .translate((0, 0, z))
         )
 
