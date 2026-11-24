@@ -5,26 +5,27 @@ from math import radians, tan
 import cadquery as cq
 
 class BaroqueFlute:
+    BORE_DIAMETER = 19
+
+    CORK_DISTANCE = 19
+    CORK_THICKNESS = 2
+
     WALL_THICKNESS = 3
 
-    BORE_DIAMETER = 19
+    BLOW_HOLE_WIDTH = 8.5
+    BLOW_HOLE_LENGTH = 9.5
 
     FOOT_BORE_DIAMETER = 14
 
     LENGTH_ABOVE_BLOW_HOLE = 70
     LENGTH_BELOW_BLOW_HOLE = 520
 
-    CORK_DISTANCE = 19
-    CORK_THICKNESS = 2
+    TONE_HOLE_DIAMETER = 7
+    TONE_HOLE_POSITIONS = (220, 260, 300, 340, 380, 420, 470)
 
-    BLOW_HOLE_WIDTH = 8.5
-    BLOW_HOLE_LENGTH = 9.5
     EMBOUCHURE_BAND_LENGTH = 30
     EMBOUCHURE_WALL_THICKNESS = 5
     EMBOUCHURE_UNDERCUT_DEGREES = 7
-
-    TONE_HOLE_DIAMETER = 7
-    TONE_HOLE_POSITIONS = (220, 260, 300, 340, 380, 420, 470)
 
     BODY_SPLIT_AFTER_HOLE = 3
 
@@ -73,7 +74,6 @@ class BaroqueFlute:
 
         self.inner_radius = self.BORE_DIAMETER/2
         self.outer_radius = self.inner_radius + self.WALL_THICKNESS
-        self.embouchure_outer_radius = self.inner_radius + self.EMBOUCHURE_WALL_THICKNESS
 
         self.tone_hole_radius = self.TONE_HOLE_DIAMETER/2
 
@@ -88,6 +88,8 @@ class BaroqueFlute:
         self.key_pivot_hole_radius = (self.KEY_PIVOT_DIAMETER + self.KEY_PIVOT_CLEARANCE) / 2
 
         self.o_ring_groove_radius = self.socket_radius - self.O_RING_CROSS_SECTION * (1 - self.O_RING_SQUEEZE)
+
+        self.embouchure_outer_radius = self.inner_radius + self.EMBOUCHURE_WALL_THICKNESS
 
         split = self.BODY_SPLIT_AFTER_HOLE
 
@@ -174,7 +176,7 @@ class BaroqueFlute:
 
         return tube
 
-    def section(self, start, end=None):
+    def slice(self, start, end=None):
         piece = self.tube
 
         if start > 0:
@@ -217,17 +219,17 @@ class BaroqueFlute:
         )
 
     def head(self):
-        return self.section(0, self.head_joint_z).union(self.socket(self.head_joint_z, bonded_below=True))
+        return self.slice(0, self.head_joint_z).union(self.socket(self.head_joint_z, bonded_below=True))
 
     def upper_body(self):
-        return self.section(self.head_joint_z, self.body_joint_z).union(self.socket(self.body_joint_z, bonded_below=True))
+        return self.slice(self.head_joint_z, self.body_joint_z).union(self.socket(self.body_joint_z, bonded_below=True))
 
     def lower_body(self):
-        return self.section(self.body_joint_z, self.foot_joint_z)
+        return self.slice(self.body_joint_z, self.foot_joint_z)
 
     def foot(self):
         return (
-            self.section(self.foot_joint_z)
+            self.slice(self.foot_joint_z)
             .union(self.pad_seat())
             .union(self.socket(self.foot_joint_z, bonded_below=False).union(self.hinge()))
         )
