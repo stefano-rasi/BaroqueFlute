@@ -133,7 +133,9 @@ class BaroqueFlute:
         return (
             cq.Workplane('YZ')
             .ellipse((self.BLOW_HOLE_WIDTH + undercut_growth)/2, (self.BLOW_HOLE_LENGTH + undercut_growth)/2)
-            .extrude(self.embouchure_outer_radius, taper=self.EMBOUCHURE_UNDERCUT_DEGREES)
+            .workplane(offset=self.embouchure_outer_radius)
+            .ellipse(self.BLOW_HOLE_WIDTH/2, self.BLOW_HOLE_LENGTH/2)
+            .loft(ruled=True)
             .translate((0, 0, self.z(0)))
         )
 
