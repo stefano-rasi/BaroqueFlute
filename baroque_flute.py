@@ -1,27 +1,15 @@
-from math import radians, tan
 from pathlib import Path
 from functools import cached_property
 
 import cadquery as cq
 
 class BaroqueFlute:
-    BORE_PROFILE = (
-        (113.2, 17.2),
-        (216, 15.5),
-        (251.8, 14.9),
-        (286.7, 14.4),
-        (342.4, 13.8),
-        (375.4, 13.2),
-        (410.3, 12.5),
-        (468.8, 11.4)
-    )
+    BORE_DIAMETER = 19
 
-    BORE_DIAMETER = 17.2
+    WALL_THICKNESS = 1.5
 
-    WALL_THICKNESS = 3.2
-
+    CORK_DISTANCE = 8
     CORK_THICKNESS = 2
-    CORK_DISTANCE = 17.2
 
     JOINT_LENGTH = 20
     JOINT_THICKNESS = 1.5
@@ -32,10 +20,9 @@ class BaroqueFlute:
     PAD_SEAT_HEIGHT = 1
     PAD_PLUG_LENGTH = 1.2
 
-    BLOW_HOLE_WIDTH = 7.5
-    BLOW_HOLE_LENGTH = 8.5
-
     FOOT_JOINT_MARGIN = 5
+
+    BLOW_HOLE_DIAMETER = 8
 
     KEY_WIDTH = 5
     KEY_LENGTH = 40
@@ -44,25 +31,23 @@ class BaroqueFlute:
     KEY_PROFILE_FILE = Path(__file__).with_name('key.dxf')
     KEY_ANGLE_DEGREES = 6
     KEY_PIVOT_DIAMETER = 1
-    KEY_ROTATION_DEGREES = 30
 
     HINGE_WIDTH = 15
     HINGE_RADIAL_EXTENT = 7.5
 
-    O_RING_SQUEEZE = 0.2
-    O_RING_GROOVE_WIDTH = 2
-    O_RING_CROSS_SECTION = 1.5
+    TONE_HOLE_DIAMETER = 7
+    TONE_HOLE_POSITIONS = (220, 260, 300, 340, 380, 420, 470)
 
     BODY_SPLIT_AFTER_HOLE = 3
 
-    JOINT_CLEARANCE = 0.2
+    JOINT_CLEARANCE = 0.05
     PAD_PLUG_CLEARANCE = 0.1
     KEY_PIVOT_CLEARANCE = 0.2
     HINGE_SLOT_CLEARANCE = 0.2
     PAD_KEY_SLOT_CLEARANCE = 1
 
     LENGTH_ABOVE_BLOW_HOLE = 70
-    LENGTH_BELOW_BLOW_HOLE = 509.3
+    LENGTH_BELOW_BLOW_HOLE = 520
 
     HEAD_JOINT_FROM_BLOW_HOLE = 130
 
@@ -72,21 +57,13 @@ class BaroqueFlute:
     SPRING_BASE_THICKNESS = 1.5
     SPRING_DISTANCE_FROM_PIVOT = 10
 
-    TONE_HOLE_DIAMETERS = (6.7, 6.5, 5.6, 5.7, 5.8, 4.7, 6.4)
-    TONE_HOLE_POSITIONS = (221.9, 257.9, 294, 351, 381.9, 417.4, 474.7)
-    TONE_HOLE_UNDERCUT_DEGREES = 7
-
-    EMBOUCHURE_BAND_LENGTH = 30
-    EMBOUCHURE_WALL_THICKNESS = 5
-    EMBOUCHURE_UNDERCUT_DEGREES = 7
-
     def __init__(self):
         self.length = self.LENGTH_ABOVE_BLOW_HOLE + self.LENGTH_BELOW_BLOW_HOLE
 
         self.inner_radius = self.BORE_DIAMETER/2
         self.outer_radius = self.inner_radius + self.WALL_THICKNESS
 
-        self.keyed_hole_radius = self.TONE_HOLE_DIAMETERS[-1]/2
+        self.tone_hole_radius = self.TONE_HOLE_DIAMETER/2
 
         self.socket_radius = self.outer_radius + self.JOINT_CLEARANCE
         self.socket_outer_radius = self.outer_radius + self.JOINT_THICKNESS
@@ -96,26 +73,14 @@ class BaroqueFlute:
         self.key_pivot_radius = self.socket_outer_radius + self.KEY_PIVOT_OFFSET
         self.key_pivot_hole_radius = (self.KEY_PIVOT_DIAMETER + self.KEY_PIVOT_CLEARANCE) / 2
 
-        self.o_ring_groove_radius = self.socket_radius - self.O_RING_CROSS_SECTION * (1 - self.O_RING_SQUEEZE)
-
-        self.embouchure_outer_radius = self.inner_radius + self.EMBOUCHURE_WALL_THICKNESS
-
         split = self.BODY_SPLIT_AFTER_HOLE
 
         self.head_joint_z = self.z(self.HEAD_JOINT_FROM_BLOW_HOLE)
         self.body_joint_z = self.z((self.TONE_HOLE_POSITIONS[split - 1] + self.TONE_HOLE_POSITIONS[split]) / 2)
         self.keyed_hole_z = self.z(self.TONE_HOLE_POSITIONS[-1])
-        self.foot_joint_z = self.keyed_hole_z - self.keyed_hole_radius - self.FOOT_JOINT_MARGIN - self.JOINT_LENGTH/2
+        self.foot_joint_z = self.keyed_hole_z - self.tone_hole_radius - self.FOOT_JOINT_MARGIN - self.JOINT_LENGTH/2
 
-        self.o_ring_groove_positions = (
-            self.head_joint_z + self.JOINT_LENGTH/4,
-            self.body_joint_z + self.JOINT_LENGTH/4,
-            self.foot_joint_z - self.JOINT_LENGTH/4
-        )
-
-        self.key_rotation = cq.Location(cq.Vector(0, 0, 0), cq.Vector(0, 0, 1), self.KEY_ROTATION_DEGREES)
-
-        self.key_pivot = self.key_rotation * cq.Location(
+        self.key_pivot = cq.Location(
             cq.Vector(self.key_pivot_radius, 0, self.foot_joint_z),
             cq.Vector(0, -1, 0),
             self.KEY_ANGLE_DEGREES
@@ -127,50 +92,14 @@ class BaroqueFlute:
     def ring(self, outer_radius, inner_radius, height):
         return cq.Workplane('XY').circle(outer_radius).circle(inner_radius).extrude(height)
 
-    def blow_hole(self):
-        undercut_growth = 2 * self.embouchure_outer_radius * tan(radians(self.EMBOUCHURE_UNDERCUT_DEGREES))
-
-        return (
-            cq.Workplane('YZ')
-            .ellipse((self.BLOW_HOLE_WIDTH + undercut_growth)/2, (self.BLOW_HOLE_LENGTH + undercut_growth)/2)
-            .workplane(offset=self.embouchure_outer_radius)
-            .ellipse(self.BLOW_HOLE_WIDTH/2, self.BLOW_HOLE_LENGTH/2)
-            .loft(ruled=True)
-            .translate((0, 0, self.z(0)))
-        )
-
-    def tone_hole(self, diameter, z):
-        undercut_growth = 2 * self.outer_radius * tan(radians(self.TONE_HOLE_UNDERCUT_DEGREES))
-
-        return (
-            cq.Workplane('YZ')
-            .circle((diameter + undercut_growth)/2)
-            .workplane(offset=self.outer_radius)
-            .circle(diameter/2)
-            .loft(ruled=True)
-            .translate((0, 0, z))
-        )
+    def hole(self, diameter, z):
+        return cq.Workplane('YZ').circle(diameter/2).extrude(self.outer_radius).translate((0, 0, z))
 
     @cached_property
     def tube(self):
-        profile = [(diameter/2, self.z(position)) for position, diameter in self.BORE_PROFILE]
+        tube = self.ring(self.outer_radius, self.inner_radius, self.length)
 
-        foot_radius = profile[-1][0]
-
-        bore = (
-            cq.Workplane('XZ')
-            .polyline([(0, 0), (self.inner_radius, 0)] + profile + [(foot_radius, self.length), (0, self.length)])
-            .close()
-            .revolve(360, (0, 0, 0), (0, 1, 0))
-        )
-
-        tube = cq.Workplane('XY').circle(self.outer_radius).extrude(self.length).cut(bore)
-
-        embouchure_band = self.ring(self.embouchure_outer_radius, self.inner_radius, self.EMBOUCHURE_BAND_LENGTH)
-
-        tube = tube.union(embouchure_band.translate((0, 0, self.z(0) - self.EMBOUCHURE_BAND_LENGTH/2)))
-
-        tube = tube.cut(self.blow_hole())
+        tube = tube.cut(self.hole(self.BLOW_HOLE_DIAMETER, self.z(0)))
 
         cork_top = self.z(0) - self.CORK_DISTANCE
 
@@ -181,17 +110,8 @@ class BaroqueFlute:
             .translate((0, 0, cork_top - self.CORK_THICKNESS))
         )
 
-        for position in self.o_ring_groove_positions:
-            groove = self.ring(self.outer_radius, self.o_ring_groove_radius, self.O_RING_GROOVE_WIDTH)
-
-            tube = tube.cut(groove.translate((0, 0, position - self.O_RING_GROOVE_WIDTH/2)))
-
-        for position, diameter in zip(self.TONE_HOLE_POSITIONS[:-1], self.TONE_HOLE_DIAMETERS[:-1]):
-            tube = tube.cut(self.tone_hole(diameter, self.z(position)))
-
-        keyed_hole = self.tone_hole(self.TONE_HOLE_DIAMETERS[-1], self.keyed_hole_z)
-
-        tube = tube.cut(keyed_hole.rotate((0, 0, 0), (0, 0, 1), self.KEY_ROTATION_DEGREES))
+        for position in self.TONE_HOLE_POSITIONS:
+            tube = tube.cut(self.hole(self.TONE_HOLE_DIAMETER, self.z(position)))
 
         return tube
 
@@ -216,12 +136,11 @@ class BaroqueFlute:
     def pad_seat(self):
         return (
             cq.Workplane('YZ')
-            .circle(self.keyed_hole_radius)
-            .circle(self.keyed_hole_radius + self.PAD_SEAT_WALL)
+            .circle(self.tone_hole_radius)
+            .circle(self.tone_hole_radius + self.PAD_SEAT_WALL)
             .extrude(self.PAD_SEAT_DEPTH + self.PAD_SEAT_HEIGHT)
             .translate((self.outer_radius - self.PAD_SEAT_DEPTH, 0, self.keyed_hole_z))
             .cut(cq.Workplane('XY').circle(self.inner_radius).extrude(self.length))
-            .rotate((0, 0, 0), (0, 0, 1), self.KEY_ROTATION_DEGREES)
         )
 
     def hinge(self):
@@ -236,7 +155,6 @@ class BaroqueFlute:
             .cut(cq.Workplane('XY').box(self.hinge_outer_radius, self.KEY_WIDTH + self.HINGE_SLOT_CLEARANCE, self.JOINT_LENGTH).translate(box_center))
             .cut(cq.Workplane('XZ').cylinder(self.HINGE_WIDTH, self.key_pivot_hole_radius).translate((self.key_pivot_radius, 0, self.JOINT_LENGTH/2)))
             .translate((0, 0, self.foot_joint_z - self.JOINT_LENGTH/2))
-            .rotate((0, 0, 0), (0, 0, 1), self.KEY_ROTATION_DEGREES)
         )
 
     def head(self):
@@ -291,11 +209,10 @@ class BaroqueFlute:
             .cylinder(self.KEY_THICKNESS, self.PAD_RADIUS)
             .union(
                 cq.Workplane('YZ')
-                .cylinder(self.PAD_PLUG_LENGTH * 2, self.keyed_hole_radius - self.PAD_PLUG_CLEARANCE)
+                .cylinder(self.PAD_PLUG_LENGTH * 2, self.tone_hole_radius - self.PAD_PLUG_CLEARANCE)
                 .translate((-self.KEY_THICKNESS/2, 0, 0))
             )
             .translate((self.outer_radius + self.KEY_THICKNESS/2 + self.PAD_SEAT_HEIGHT, 0, self.keyed_hole_z))
-            .rotate((0, 0, 0), (0, 0, 1), self.KEY_ROTATION_DEGREES)
             .cut(pad_key_slot)
         )
 
