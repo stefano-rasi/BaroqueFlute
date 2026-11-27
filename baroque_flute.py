@@ -89,7 +89,7 @@ class BaroqueFlute:
     def z(self, position_from_blow_hole):
         return self.LENGTH_ABOVE_BLOW_HOLE + position_from_blow_hole
 
-    def ring(self, outer_radius, inner_radius, height):
+    def pipe(self, outer_radius, inner_radius, height):
         return cq.Workplane('XY').circle(outer_radius).circle(inner_radius).extrude(height)
 
     def hole(self, diameter, z):
@@ -97,7 +97,7 @@ class BaroqueFlute:
 
     @cached_property
     def tube(self):
-        tube = self.ring(self.outer_radius, self.inner_radius, self.length)
+        tube = self.pipe(self.outer_radius, self.inner_radius, self.length)
 
         tube = tube.cut(self.hole(self.BLOW_HOLE_DIAMETER, self.z(0)))
 
@@ -127,9 +127,9 @@ class BaroqueFlute:
         return piece
 
     def socket(self, z, bonded_below):
-        sleeve = self.ring(self.socket_outer_radius, self.socket_radius, self.JOINT_LENGTH)
+        sleeve = self.pipe(self.socket_outer_radius, self.socket_radius, self.JOINT_LENGTH)
 
-        bond = self.ring(self.socket_radius, self.outer_radius, self.JOINT_LENGTH/2).translate((0, 0, 0 if bonded_below else self.JOINT_LENGTH/2))
+        bond = self.pipe(self.socket_radius, self.outer_radius, self.JOINT_LENGTH/2).translate((0, 0, 0 if bonded_below else self.JOINT_LENGTH/2))
 
         return sleeve.union(bond).translate((0, 0, z - self.JOINT_LENGTH/2))
 
@@ -221,7 +221,7 @@ class BaroqueFlute:
 GREEN = 'hsl(120, 100%, 45%)'
 YELLOW = 'hsl(55, 100%, 50%)'
 
-OPACITY = 1
+OPACITY = 0.5
 
 flute = BaroqueFlute()
 
