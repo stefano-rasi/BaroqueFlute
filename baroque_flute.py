@@ -51,11 +51,12 @@ class BaroqueFlute:
 
     HEAD_JOINT_FROM_BLOW_HOLE = 130
 
-    SPRING_LENGTH = 8
-    SPRING_ANGLE_DEGREES = 45
-    SPRING_TIP_THICKNESS = 0.5
-    SPRING_BASE_THICKNESS = 1.5
-    SPRING_DISTANCE_FROM_PIVOT = 10
+    MAGNET_DIAMETER = 4
+    MAGNET_THICKNESS = 2
+    MAGNET_DISTANCE_FROM_PIVOT = 6.5
+    MAGNET_GAP = 0.5
+    MAGNET_BOSS_WALL = 1
+    MAGNET_POCKET_CLEARANCE = 0.1
 
     def __init__(self):
         self.length = self.LENGTH_ABOVE_BLOW_HOLE + self.LENGTH_BELOW_BLOW_HOLE
@@ -143,6 +144,32 @@ class BaroqueFlute:
             .cut(cq.Workplane('XY').circle(self.inner_radius).extrude(self.length))
         )
 
+    def magnet_pocket(self, x_from):
+        diameter = self.MAGNET_DIAMETER + self.MAGNET_POCKET_CLEARANCE * 2
+        depth = self.MAGNET_THICKNESS + self.MAGNET_POCKET_CLEARANCE
+
+        return (
+            cq.Workplane('YZ')
+            .circle(diameter/2)
+            .extrude(depth)
+            .translate((x_from, 0, self.MAGNET_DISTANCE_FROM_PIVOT))
+        )
+
+    def magnet_seat(self):
+        # Key-local frame: the key underside faces -X, the pad is towards +Z.
+        boss_top = -self.KEY_THICKNESS/2 - self.MAGNET_GAP
+        boss_bottom = self.outer_radius - self.key_pivot_radius
+        pocket_bottom = boss_top - self.MAGNET_THICKNESS - self.MAGNET_POCKET_CLEARANCE
+
+        boss = (
+            cq.Workplane('YZ')
+            .circle(self.MAGNET_DIAMETER/2 + self.MAGNET_POCKET_CLEARANCE + self.MAGNET_BOSS_WALL)
+            .extrude(boss_top - boss_bottom)
+            .translate((boss_bottom, 0, self.MAGNET_DISTANCE_FROM_PIVOT))
+        )
+
+        return boss.val().moved(self.key_pivot), self.magnet_pocket(pocket_bottom).val().moved(self.key_pivot)
+
     def hinge(self):
         box_center = (self.hinge_outer_radius/2, 0, self.JOINT_LENGTH/2)
 
@@ -167,28 +194,17 @@ class BaroqueFlute:
         return self.segment(self.body_joint_z, self.foot_joint_z)
 
     def foot(self):
-        return (
+        boss, pocket = self.magnet_seat()
+
+        foot = (
             self.segment(self.foot_joint_z)
             .union(self.pad_seat())
             .union(self.socket(self.foot_joint_z, bonded_below=False).union(self.hinge()))
         )
 
-    def key(self):
-        spring = (
-            cq.Workplane('XZ')
-            .polyline([
-                (-self.SPRING_BASE_THICKNESS/2, 0),
-                (self.SPRING_BASE_THICKNESS/2, 0),
-                (self.SPRING_TIP_THICKNESS/2, self.SPRING_LENGTH),
-                (-self.SPRING_TIP_THICKNESS/2, self.SPRING_LENGTH)
-            ])
-            .close()
-            .extrude(self.KEY_WIDTH)
-            .translate((0, self.KEY_WIDTH/2, 0))
-            .rotate((0, 0, 0), (0, -1, 0), self.SPRING_ANGLE_DEGREES)
-            .translate((0, 0, -self.SPRING_DISTANCE_FROM_PIVOT))
-        )
+        return foot.union(boss).cut(pocket)
 
+    def key(self):
         shaft = (
             cq.importers.importDXF(self.KEY_PROFILE_FILE)
             .wires()
@@ -199,7 +215,7 @@ class BaroqueFlute:
             .rotate((0, 0, 0), (0, 0, 1), 90)
             .rotate((0, 0, 0), (0, 1, 0), 90)
             .cut(cq.Workplane('XZ').cylinder(self.HINGE_WIDTH, self.key_pivot_hole_radius))
-            .cut(spring)
+            .cut(self.magnet_pocket(-self.KEY_THICKNESS/2))
         )
 
         pad_key_slot = cq.Workplane('YZ').box(self.KEY_WIDTH, self.KEY_LENGTH + self.PAD_KEY_SLOT_CLEARANCE, self.KEY_THICKNESS).val().moved(self.key_pivot)
@@ -216,7 +232,7 @@ class BaroqueFlute:
             .cut(pad_key_slot)
         )
 
-        return shaft.val().moved(self.key_pivot), spring.val().moved(self.key_pivot), pad
+        return shaft.val().moved(self.key_pivot), pad
 
 GREEN = 'hsl(120, 100%, 45%)'
 YELLOW = 'hsl(55, 100%, 50%)'
