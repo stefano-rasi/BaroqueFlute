@@ -156,7 +156,6 @@ class BaroqueFlute:
         )
 
     def magnet_seat(self):
-        # Key-local frame: the key underside faces -X, the pad is towards +Z.
         boss_top = -self.KEY_THICKNESS/2 - self.MAGNET_GAP
         boss_bottom = self.outer_radius - self.key_pivot_radius
         pocket_bottom = boss_top - self.MAGNET_THICKNESS - self.MAGNET_POCKET_CLEARANCE
@@ -241,9 +240,9 @@ OPACITY = 0.5
 
 flute = BaroqueFlute()
 
-#show_object(flute.head(), GREEN, OPACITY)
-#show_object(flute.upper_body(), GREEN, OPACITY)
-#show_object(flute.lower_body(), GREEN, OPACITY)
+show_object(flute.head(), GREEN, OPACITY)
+show_object(flute.upper_body(), GREEN, OPACITY)
+show_object(flute.lower_body(), GREEN, OPACITY)
 show_object(flute.foot(), GREEN, OPACITY)
 
 show_object(flute.key(), YELLOW, OPACITY)
