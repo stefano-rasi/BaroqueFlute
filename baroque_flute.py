@@ -241,9 +241,9 @@ OPACITY = 0.5
 
 flute = BaroqueFlute()
 
-show_object(flute.head(), GREEN, OPACITY)
-show_object(flute.upper_body(), GREEN, OPACITY)
-show_object(flute.lower_body(), GREEN, OPACITY)
+#show_object(flute.head(), GREEN, OPACITY)
+#show_object(flute.upper_body(), GREEN, OPACITY)
+#show_object(flute.lower_body(), GREEN, OPACITY)
 show_object(flute.foot(), GREEN, OPACITY)
 
 show_object(flute.key(), YELLOW, OPACITY)
